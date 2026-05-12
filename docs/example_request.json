@@ -1,0 +1,24 @@
+{
+  "conversation": {
+    "conversation_id": "demo-001",
+    "source": "manual",
+    "turns": [
+      {
+        "role": "user",
+        "text": "I feel overwhelmed and need a study plan for an ML interview."
+      },
+      {
+        "role": "assistant",
+        "text": "I understand. Start with one topic today, then review model evaluation tomorrow and deployment basics after that."
+      }
+    ],
+    "metadata": {
+      "candidate": "portfolio-demo"
+    }
+  },
+  "categories": ["emotion", "pragmatics", "safety"],
+  "batch_size": 5,
+  "metadata": {
+    "experiment": "readme-demo"
+  }
+}

@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>AI Conversation Evaluator</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  </head>
+  <body>
+    <header class="topbar">
+      <div>
+        <h1>AI Conversation Evaluator</h1>
+        <p>Schema-first multi-facet benchmark dashboard</p>
+      </div>
+      <a href="/facets" target="_blank">Facet Registry</a>
+    </header>
+
+    <main class="layout">
+      <section class="panel editor">
+        <div class="panel-header">
+          <h2>Conversation JSON</h2>
+          <button id="evaluateBtn">Evaluate</button>
+        </div>
+        <textarea id="payload">{{ sample }}</textarea>
+        <div id="error" class="error" hidden></div>
+      </section>
+
+      <section class="panel results">
+        <div class="metric-row">
+          <div>
+            <span>Overall Score</span>
+            <strong id="overallScore">-</strong>
+          </div>
+          <div>
+            <span>Confidence</span>
+            <strong id="overallConfidence">-</strong>
+          </div>
+          <div>
+            <span>Batches</span>
+            <strong id="batchCount">-</strong>
+          </div>
+        </div>
+        <div class="charts">
+          <canvas id="categoryChart" height="150"></canvas>
+          <canvas id="confidenceChart" height="150"></canvas>
+        </div>
+        <div id="turns" class="turns"></div>
+      </section>
+    </main>
+    <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+  </body>
+</html>

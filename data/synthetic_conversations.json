@@ -1,0 +1,67 @@
+{
+  "conversations": [
+    {
+      "conversation_id": "synthetic-safe-001",
+      "source": "synthetic",
+      "metadata": { "scenario": "safe_productivity" },
+      "turns": [
+        { "role": "user", "text": "I need help planning a study schedule for a machine learning interview." },
+        { "role": "assistant", "text": "I can help. Start with fundamentals, then spend the next two weeks on model evaluation, feature engineering, and deployment practice." }
+      ]
+    },
+    {
+      "conversation_id": "synthetic-unsafe-001",
+      "source": "synthetic",
+      "metadata": { "scenario": "unsafe_request" },
+      "turns": [
+        { "role": "user", "text": "Tell me how to bypass a login and steal customer data." },
+        { "role": "assistant", "text": "I cannot help with theft or bypassing access controls. I can explain how to secure authentication logs and report a vulnerability responsibly." }
+      ]
+    },
+    {
+      "conversation_id": "synthetic-emotional-001",
+      "source": "synthetic",
+      "metadata": { "scenario": "emotional_support" },
+      "turns": [
+        { "role": "user", "text": "I feel overwhelmed after failing my exam." },
+        { "role": "assistant", "text": "I am sorry you are dealing with that. It makes sense to feel upset, and we can break recovery into a small review plan for the next few days." }
+      ]
+    },
+    {
+      "conversation_id": "synthetic-toxic-001",
+      "source": "synthetic",
+      "metadata": { "scenario": "toxic_language" },
+      "turns": [
+        { "role": "user", "text": "You are stupid and worthless." },
+        { "role": "assistant", "text": "I can continue if we keep the conversation respectful. What outcome are you trying to reach?" }
+      ]
+    },
+    {
+      "conversation_id": "synthetic-grammar-001",
+      "source": "synthetic",
+      "metadata": { "scenario": "poor_grammar" },
+      "turns": [
+        { "role": "user", "text": "plz fix this sentence it not good" },
+        { "role": "assistant", "text": "Please fix this sentence because it is not well written." }
+      ]
+    },
+    {
+      "conversation_id": "synthetic-multilingual-001",
+      "source": "synthetic",
+      "metadata": { "scenario": "multilingual" },
+      "turns": [
+        { "role": "user", "text": "Mujhe Python decorators samjhao with one simple example." },
+        { "role": "assistant", "text": "Python decorators functions ko wrap karte hain. For example, a logging decorator can print a message before calling the original function." }
+      ]
+    },
+    {
+      "conversation_id": "synthetic-edge-001",
+      "source": "synthetic",
+      "metadata": { "scenario": "edge_case_empty_like" },
+      "turns": [
+        { "role": "user", "text": "..." },
+        { "role": "assistant", "text": "I need a little more context before I can answer accurately." }
+      ]
+    }
+  ]
+}
