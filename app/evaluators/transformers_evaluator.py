@@ -79,7 +79,9 @@ class TransformersEvaluator(BaseEvaluator):
         import torch
         from transformers import AutoModelForCausalLM, AutoTokenizer
 
-        logger.info(json.dumps({"event": "qwen_model_load_start", "model_name": model_name}))
+        logger.info(
+            json.dumps({"event": "qwen_model_load_start", "model_name": model_name})
+        )
         tokenizer = AutoTokenizer.from_pretrained(model_name)
         dtype = torch.float16 if torch.cuda.is_available() else torch.float32
         model = AutoModelForCausalLM.from_pretrained(model_name, torch_dtype=dtype)

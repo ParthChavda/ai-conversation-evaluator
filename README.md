@@ -91,6 +91,12 @@ ACE_TRACE_ENABLED=true
 
 The first Qwen run can be slow because the model has to load or download.
 
+The app can run without a `.env` file because these values have defaults in code. If needed, copy the example config:
+
+```bash
+cp .env.example .env
+```
+
 ## Submission Zip
 
 The generated assignment zip is:
