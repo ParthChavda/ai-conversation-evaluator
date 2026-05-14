@@ -1,10 +1,13 @@
 import json
+import logging
 import re
 from functools import lru_cache
 from typing import Any
 
 from app.evaluators.base import BaseEvaluator
 from app.models.schemas import ConversationTurn, Facet, FacetEvaluation
+
+logger = logging.getLogger("ace.evaluator.qwen")
 
 
 class TransformersEvaluator(BaseEvaluator):
@@ -28,23 +31,47 @@ class TransformersEvaluator(BaseEvaluator):
         self.temperature = temperature
         self.name = f"{model_family}:{model_name}"
 
-    def evaluate_turn(self, turn: ConversationTurn, facets: list[Facet]) -> list[FacetEvaluation]:
+    def evaluate_turn(
+        self, turn: ConversationTurn, facets: list[Facet]
+    ) -> list[FacetEvaluation]:
+        logger.info(
+            json.dumps(
+                {
+                    "event": "qwen_evaluation_start",
+                    "model_family": self.model_family,
+                    "model_name": self.model_name,
+                    "turn_id": turn.turn_id,
+                    "facet_count": len(facets),
+                }
+            )
+        )
         tokenizer, model, device = self.load_model(self.model_name)
         prompt = self._build_prompt(turn, facets)
-        input_ids = self._encode_prompt(tokenizer, prompt, device)
-        generation_kwargs: dict[str, Any] = {
-            "max_new_tokens": self.max_new_tokens,
-            "do_sample": self.temperature > 0,
-            "pad_token_id": tokenizer.eos_token_id,
-        }
+        model_inputs = self._encode_prompt(tokenizer, prompt, device)
+        generation_kwargs = self._generation_kwargs(tokenizer)
         if self.temperature > 0:
             generation_kwargs["temperature"] = self.temperature
 
-        output_ids = model.generate(input_ids, **generation_kwargs)
-        generated_ids = output_ids[0][input_ids.shape[-1] :]
+        output_ids = model.generate(**model_inputs, **generation_kwargs)
+        generated_ids = output_ids[0][model_inputs["input_ids"].shape[-1] :]
         raw_text = tokenizer.decode(generated_ids, skip_special_tokens=True)
         parsed = self._parse_response(raw_text)
-        return [self._evaluation_from_payload(turn, facet, parsed.get(facet.facet_id)) for facet in facets]
+        logger.info(
+            json.dumps(
+                {
+                    "event": "qwen_evaluation_end",
+                    "model_family": self.model_family,
+                    "model_name": self.model_name,
+                    "turn_id": turn.turn_id,
+                    "facet_count": len(facets),
+                    "parsed_count": len(parsed),
+                }
+            )
+        )
+        return [
+            self._evaluation_from_payload(turn, facet, parsed.get(facet.facet_id))
+            for facet in facets
+        ]
 
     @staticmethod
     @lru_cache(maxsize=2)
@@ -52,12 +79,23 @@ class TransformersEvaluator(BaseEvaluator):
         import torch
         from transformers import AutoModelForCausalLM, AutoTokenizer
 
+        logger.info(json.dumps({"event": "qwen_model_load_start", "model_name": model_name}))
         tokenizer = AutoTokenizer.from_pretrained(model_name)
         dtype = torch.float16 if torch.cuda.is_available() else torch.float32
         model = AutoModelForCausalLM.from_pretrained(model_name, torch_dtype=dtype)
         device = _best_device()
         model.to(device)
         model.eval()
+        logger.info(
+            json.dumps(
+                {
+                    "event": "qwen_model_load_end",
+                    "model_name": model_name,
+                    "device": device,
+                    "dtype": str(dtype),
+                }
+            )
+        )
         return tokenizer, model, device
 
     def _build_prompt(self, turn: ConversationTurn, facets: list[Facet]) -> str:
@@ -80,28 +118,45 @@ class TransformersEvaluator(BaseEvaluator):
             f"Conversation turn:\n{json.dumps(turn.model_dump(mode='json'), ensure_ascii=False)}\n\n"
             f"Facets:\n{json.dumps(facet_specs, ensure_ascii=False)}\n\n"
             "Required response schema:\n"
-            "{\"evaluations\":[{\"facet_id\":\"...\",\"score\":0.0,\"confidence\":0.0,"
-            "\"reasoning_summary\":\"short reason\"}]}"
+            '{"evaluations":[{"facet_id":"...","score":0.0,"confidence":0.0,'
+            '"reasoning_summary":"short reason"}]}'
         )
 
     def _encode_prompt(self, tokenizer, prompt: str, device: str):
         messages = [
-            {"role": "system", "content": "You are a precise, conservative conversation quality evaluator."},
+            {
+                "role": "system",
+                "content": "You are a precise, conservative conversation quality evaluator.",
+            },
             {"role": "user", "content": prompt},
         ]
         if hasattr(tokenizer, "apply_chat_template") and tokenizer.chat_template:
-            encoded = tokenizer.apply_chat_template(
+            rendered_prompt = tokenizer.apply_chat_template(
                 messages,
                 add_generation_prompt=True,
-                return_tensors="pt",
+                tokenize=False,
             )
         else:
-            encoded = tokenizer(prompt, return_tensors="pt").input_ids
-        return encoded.to(device)
+            rendered_prompt = prompt
+        encoded = tokenizer(rendered_prompt, return_tensors="pt", padding=False)
+        return {key: value.to(device) for key, value in encoded.items()}
+
+    def _generation_kwargs(self, tokenizer) -> dict[str, Any]:
+        kwargs: dict[str, Any] = {
+            "max_new_tokens": self.max_new_tokens,
+            "do_sample": self.temperature > 0,
+            "pad_token_id": tokenizer.eos_token_id,
+            "eos_token_id": tokenizer.eos_token_id,
+        }
+        if self.temperature <= 0:
+            kwargs.update({"temperature": None, "top_p": None, "top_k": None})
+        return kwargs
 
     def _parse_response(self, raw_text: str) -> dict[str, dict[str, Any]]:
         payload = _extract_json(raw_text)
-        evaluations = payload.get("evaluations", []) if isinstance(payload, dict) else []
+        evaluations = (
+            payload.get("evaluations", []) if isinstance(payload, dict) else []
+        )
         parsed: dict[str, dict[str, Any]] = {}
         for item in evaluations:
             if isinstance(item, dict) and isinstance(item.get("facet_id"), str):
@@ -122,12 +177,21 @@ class TransformersEvaluator(BaseEvaluator):
                 reasoning_summary="Model did not return a valid evaluation for this facet.",
                 evaluator=self.name,
                 strategy=facet.evaluation_strategy,
-                metadata={"model_family": self.model_family, "parse_fallback": True, "turn_id": turn.turn_id},
+                metadata={
+                    "model_family": self.model_family,
+                    "parse_fallback": True,
+                    "turn_id": turn.turn_id,
+                },
             )
 
-        score = _clamp_float(payload.get("score"), facet.score_scale.min, facet.score_scale.max)
+        score = _clamp_float(
+            payload.get("score"), facet.score_scale.min, facet.score_scale.max
+        )
         confidence = _clamp_float(payload.get("confidence"), 0.0, 1.0)
-        reason = str(payload.get("reasoning_summary") or "Model returned a score without a reasoning summary.")
+        reason = str(
+            payload.get("reasoning_summary")
+            or "Model returned a score without a reasoning summary."
+        )
         return FacetEvaluation(
             facet_id=facet.facet_id,
             score=round(score, 3),

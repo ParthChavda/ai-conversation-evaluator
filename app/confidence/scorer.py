@@ -8,5 +8,7 @@ class ConfidenceCalibrator:
         calibrated: list[FacetEvaluation] = []
         for evaluation in evaluations:
             confidence = max(0.0, min(1.0, evaluation.confidence))
-            calibrated.append(evaluation.model_copy(update={"confidence": round(confidence, 3)}))
+            calibrated.append(
+                evaluation.model_copy(update={"confidence": round(confidence, 3)})
+            )
         return calibrated

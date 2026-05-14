@@ -5,7 +5,6 @@ from contextlib import contextmanager
 from typing import Any
 from uuid import uuid4
 
-
 logger = logging.getLogger("ace.tracing")
 logging.basicConfig(level=logging.INFO, format="%(message)s")
 
@@ -19,7 +18,16 @@ class EvaluationTracer:
         trace_id = str(uuid4())
         started = time.perf_counter()
         if self.enabled:
-            logger.info(json.dumps({"event": "span_start", "trace_id": trace_id, "span": name, **attributes}))
+            logger.info(
+                json.dumps(
+                    {
+                        "event": "span_start",
+                        "trace_id": trace_id,
+                        "span": name,
+                        **attributes,
+                    }
+                )
+            )
         try:
             yield
         finally:

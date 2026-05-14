@@ -17,9 +17,15 @@ from app.models.schemas import Conversation, EvaluationResult, Facet
 
 class SQLAlchemyEvaluationStore:
     def __init__(self, database_url: str):
-        connect_args = {"check_same_thread": False} if database_url.startswith("sqlite") else {}
-        self.engine = create_engine(database_url, future=True, connect_args=connect_args)
-        self.session_factory = sessionmaker(self.engine, expire_on_commit=False, future=True)
+        connect_args = (
+            {"check_same_thread": False} if database_url.startswith("sqlite") else {}
+        )
+        self.engine = create_engine(
+            database_url, future=True, connect_args=connect_args
+        )
+        self.session_factory = sessionmaker(
+            self.engine, expire_on_commit=False, future=True
+        )
         Base.metadata.create_all(self.engine)
 
     def sync_facets(self, facets: list[Facet]) -> None:
@@ -62,7 +68,11 @@ class SQLAlchemyEvaluationStore:
             return EvaluationResult.model_validate(json.loads(record.payload_json))
 
     def _save_conversation(self, session: Session, conversation: Conversation) -> None:
-        session.execute(delete(TurnORM).where(TurnORM.conversation_id == conversation.conversation_id))
+        session.execute(
+            delete(TurnORM).where(
+                TurnORM.conversation_id == conversation.conversation_id
+            )
+        )
         session.merge(
             ConversationORM(
                 conversation_id=conversation.conversation_id,
@@ -93,8 +103,14 @@ class SQLAlchemyEvaluationStore:
                 created_at=result.created_at,
             )
         )
-        session.execute(delete(FacetEvaluationORM).where(FacetEvaluationORM.evaluation_id == result.evaluation_id))
-        session.execute(delete(MetricORM).where(MetricORM.evaluation_id == result.evaluation_id))
+        session.execute(
+            delete(FacetEvaluationORM).where(
+                FacetEvaluationORM.evaluation_id == result.evaluation_id
+            )
+        )
+        session.execute(
+            delete(MetricORM).where(MetricORM.evaluation_id == result.evaluation_id)
+        )
 
         for turn in result.turns:
             for evaluation in turn.facet_scores:

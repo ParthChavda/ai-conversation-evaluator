@@ -2,7 +2,7 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Literal
 
-from pydantic import AliasChoices, Field
+from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -20,29 +20,18 @@ class Settings(BaseSettings):
     port: int = 8000
     debug: bool = False
     root_dir: Path = Field(default_factory=lambda: Path(__file__).resolve().parents[2])
-    facet_config_path: Path = Path("configs/facets.example.json")
+    facet_config_path: Path = Path("configs/facets.assignment.json")
     synthetic_dataset_path: Path = Path("data/synthetic_conversations.json")
-    evaluator_backend: str = "mock"
+    evaluator_backend: Literal["qwen"] = "qwen"
     storage_backend: Literal["sqlalchemy", "memory"] = "sqlalchemy"
     database_url: str = "sqlite:///data/evaluations.db"
-    postgres_db: str | None = Field(default=None, validation_alias=AliasChoices("POSTGRES_DB", "ACE_POSTGRES_DB"))
-    postgres_host: str | None = Field(default=None, validation_alias=AliasChoices("POSTGRES_HOST", "ACE_POSTGRES_HOST"))
-    postgres_password: str | None = Field(
-        default=None,
-        validation_alias=AliasChoices("POSTGRES_PASSWORD", "ACE_POSTGRES_PASSWORD"),
-    )
-    postgres_port: int | None = Field(default=None, validation_alias=AliasChoices("POSTGRES_PORT", "ACE_POSTGRES_PORT"))
-    postgres_user: str | None = Field(default=None, validation_alias=AliasChoices("POSTGRES_USER", "ACE_POSTGRES_USER"))
-    facet_batch_size: int = 25
+    facet_batch_size: int = 5
     max_facets_per_request: int = 5000
     trace_enabled: bool = True
     model_cache_size: int = 2
-    qwen_model_name: str = "Qwen/Qwen2.5-1.5B-Instruct"
-    llama_model_name: str = "meta-llama/Llama-3.2-3B-Instruct"
-    mixtral_model_name: str = "mistralai/Ministral-8B-Instruct-2410"
-    generation_max_new_tokens: int = 768
+    qwen_model_name: str = "Qwen/Qwen2.5-0.5B-Instruct"
+    generation_max_new_tokens: int = 1024
     generation_temperature: float = 0.0
-    redis_url: str = "redis://redis:6379/0"
 
     @property
     def resolved_facet_config_path(self) -> Path:
@@ -54,14 +43,10 @@ class Settings(BaseSettings):
 
     @property
     def resolved_database_url(self) -> str:
-        if self.database_url == "sqlite:///data/evaluations.db" and self.postgres_db:
-            host = self.postgres_host or "localhost"
-            port = self.postgres_port or 5432
-            user = self.postgres_user or "postgres"
-            password = self.postgres_password or ""
-            return f"postgresql+psycopg://{user}:{password}@{host}:{port}/{self.postgres_db}"
         if not self.database_url.startswith("sqlite:///"):
-            return self.database_url
+            raise ValueError(
+                "Only sqlite:/// database URLs are supported by the demo baseline"
+            )
         raw_path = self.database_url.removeprefix("sqlite:///")
         path = Path(raw_path)
         if path == Path(":memory:"):

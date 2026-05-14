@@ -1,10 +1,18 @@
 from collections import defaultdict
 
-from app.models.schemas import CategoryMetric, EvaluationMetrics, Facet, FacetEvaluation, TurnEvaluation
+from app.models.schemas import (
+    CategoryMetric,
+    EvaluationMetrics,
+    Facet,
+    FacetEvaluation,
+    TurnEvaluation,
+)
 
 
 class AggregationService:
-    def turn_aggregate(self, evaluations: list[FacetEvaluation], facets_by_id: dict[str, Facet]) -> tuple[float, float]:
+    def turn_aggregate(
+        self, evaluations: list[FacetEvaluation], facets_by_id: dict[str, Facet]
+    ) -> tuple[float, float]:
         if not evaluations:
             return 0.0, 0.0
         weighted_scores = 0.0
@@ -12,11 +20,15 @@ class AggregationService:
         total_weight = 0.0
         for evaluation in evaluations:
             facet = facets_by_id[evaluation.facet_id]
-            normalized = _normalize(evaluation.score, facet.score_scale.min, facet.score_scale.max)
+            normalized = _normalize(
+                evaluation.score, facet.score_scale.min, facet.score_scale.max
+            )
             weighted_scores += normalized * facet.weight
             weighted_confidence += evaluation.confidence * facet.weight
             total_weight += facet.weight
-        return round(weighted_scores / total_weight, 3), round(weighted_confidence / total_weight, 3)
+        return round(weighted_scores / total_weight, 3), round(
+            weighted_confidence / total_weight, 3
+        )
 
     def metrics(
         self,
@@ -32,7 +44,9 @@ class AggregationService:
             for evaluation in turn.facet_scores:
                 facet = facets_by_id[evaluation.facet_id]
                 category_scores[facet.category].append(
-                    _normalize(evaluation.score, facet.score_scale.min, facet.score_scale.max)
+                    _normalize(
+                        evaluation.score, facet.score_scale.min, facet.score_scale.max
+                    )
                 )
                 category_confidences[facet.category].append(evaluation.confidence)
 
@@ -40,7 +54,11 @@ class AggregationService:
             CategoryMetric(
                 category=category,
                 score=round(sum(scores) / len(scores), 3),
-                confidence=round(sum(category_confidences[category]) / len(category_confidences[category]), 3),
+                confidence=round(
+                    sum(category_confidences[category])
+                    / len(category_confidences[category]),
+                    3,
+                ),
                 facets_evaluated=len(scores),
             )
             for category, scores in sorted(category_scores.items())
@@ -48,8 +66,12 @@ class AggregationService:
         ]
 
         if turn_evaluations:
-            overall_score = sum(turn.aggregate_score for turn in turn_evaluations) / len(turn_evaluations)
-            overall_confidence = sum(turn.aggregate_confidence for turn in turn_evaluations) / len(turn_evaluations)
+            overall_score = sum(
+                turn.aggregate_score for turn in turn_evaluations
+            ) / len(turn_evaluations)
+            overall_confidence = sum(
+                turn.aggregate_confidence for turn in turn_evaluations
+            ) / len(turn_evaluations)
         else:
             overall_score = 0.0
             overall_confidence = 0.0

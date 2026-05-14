@@ -5,40 +5,12 @@ services:
       - "8000:8000"
     environment:
       ACE_EVALUATOR_BACKEND: qwen
-      ACE_QWEN_MODEL_NAME: Qwen/Qwen2.5-1.5B-Instruct
+      ACE_QWEN_MODEL_NAME: Qwen/Qwen2.5-0.5B-Instruct
       ACE_STORAGE_BACKEND: sqlalchemy
-      ACE_DATABASE_URL: postgresql+psycopg://postgres:postgres@postgres:5432/ai_conversation_evaluator
-      ACE_FACET_BATCH_SIZE: 3
-      ACE_REDIS_URL: redis://redis:6379/0
-    depends_on:
-      - postgres
-      - redis
-
-  postgres:
-    image: postgres:16-alpine
-    environment:
-      POSTGRES_DB: ai_conversation_evaluator
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-    ports:
-      - "5432:5432"
+      ACE_DATABASE_URL: sqlite:///data/evaluations.db
+      ACE_FACET_BATCH_SIZE: 5
+      ACE_GENERATION_MAX_NEW_TOKENS: 1024
+      ACE_FACET_CONFIG_PATH: configs/facets.assignment.json
+      ACE_TRACE_ENABLED: "true"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
-
-  pgadmin:
-    image: dpage/pgadmin4:8
-    environment:
-      PGADMIN_DEFAULT_EMAIL: admin@example.com
-      PGADMIN_DEFAULT_PASSWORD: admin
-    ports:
-      - "5050:80"
-    depends_on:
-      - postgres
-
-  redis:
-    image: redis:7-alpine
-    ports:
-      - "6379:6379"
-
-volumes:
-  postgres_data:
+      - ./data:/app/data

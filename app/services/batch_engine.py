@@ -9,7 +9,9 @@ class FacetBatchingEngine:
             raise ValueError("batch_size must be greater than zero")
         self.batch_size = batch_size
 
-    def batches(self, facets: list[Facet], batch_size: int | None = None) -> Iterator[list[Facet]]:
+    def batches(
+        self, facets: list[Facet], batch_size: int | None = None
+    ) -> Iterator[list[Facet]]:
         size = batch_size or self.batch_size
         if size < 1:
             raise ValueError("batch_size must be greater than zero")

@@ -125,5 +125,8 @@ class HealthResponse(BaseModel):
     status: str
     service: str
     evaluator_backend: str
+    evaluator_model: str
     enabled_facets: int
+    facet_batch_size: int
+    max_facets_per_request: int
     timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))

@@ -40,7 +40,11 @@ class FacetRegistry:
             facets = [facet for facet in facets if facet.facet_id in requested]
         if categories:
             requested_categories = {category.lower() for category in categories}
-            facets = [facet for facet in facets if facet.category.lower() in requested_categories]
+            facets = [
+                facet
+                for facet in facets
+                if facet.category.lower() in requested_categories
+            ]
         return facets
 
     def categories(self) -> list[str]:

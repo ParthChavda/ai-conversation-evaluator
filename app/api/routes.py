@@ -13,7 +13,10 @@ def health():
         status="ok",
         service=current_app.config["APP_NAME"],
         evaluator_backend=container.settings.evaluator_backend,
+        evaluator_model=container.settings.qwen_model_name,
         enabled_facets=len(container.facet_registry.all()),
+        facet_batch_size=container.settings.facet_batch_size,
+        max_facets_per_request=container.settings.max_facets_per_request,
     )
     return jsonify(payload.model_dump(mode="json"))
 
@@ -24,7 +27,9 @@ def facets():
     include_disabled = request.args.get("include_disabled", "false").lower() == "true"
     category = request.args.get("category")
     categories = [category] if category else None
-    items = container.facet_registry.filter(categories=categories, include_disabled=include_disabled)
+    items = container.facet_registry.filter(
+        categories=categories, include_disabled=include_disabled
+    )
     return jsonify(
         {
             "facets": [facet.model_dump(mode="json") for facet in items],

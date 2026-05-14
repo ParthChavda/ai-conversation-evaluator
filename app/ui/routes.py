@@ -13,4 +13,6 @@ def dashboard():
     if sample_path.exists():
         with sample_path.open("r", encoding="utf-8") as handle:
             sample = json.load(handle)["conversations"][0]
-    return render_template("dashboard.html", sample=json.dumps({"conversation": sample}, indent=2))
+    return render_template(
+        "dashboard.html", sample=json.dumps({"conversation": sample}, indent=2)
+    )

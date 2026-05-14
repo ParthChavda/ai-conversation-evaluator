@@ -35,7 +35,9 @@ class ConversationEvaluationPipeline:
                 batch_size=request.batch_size,
             )
             total_batches += batch_count
-            score, confidence = self.aggregation_service.turn_aggregate(facet_scores, facets_by_id)
+            score, confidence = self.aggregation_service.turn_aggregate(
+                facet_scores, facets_by_id
+            )
             turn_results.append(
                 TurnEvaluation(
                     turn_id=turn.turn_id,

@@ -3,7 +3,8 @@ const payloadEl = document.getElementById("payload");
 const errorEl = document.getElementById("error");
 const turnsEl = document.getElementById("turns");
 let categoryChart;
-let confidenceChart;
+
+loadRegistrySummary();
 
 evaluateBtn.addEventListener("click", async () => {
   errorEl.hidden = true;
@@ -28,6 +29,31 @@ evaluateBtn.addEventListener("click", async () => {
   }
 });
 
+async function loadRegistrySummary() {
+  try {
+    const [healthResponse, facetsResponse] = await Promise.all([fetch("/health"), fetch("/facets")]);
+    const health = await healthResponse.json();
+    const registry = await facetsResponse.json();
+    if (!healthResponse.ok) throw new Error(JSON.stringify(health));
+    if (!facetsResponse.ok) throw new Error(JSON.stringify(registry));
+    renderRegistrySummary(health, registry);
+  } catch (error) {
+    document.getElementById("registrySource").textContent = "Facet registry unavailable";
+    document.getElementById("registryModel").textContent = error.message;
+  }
+}
+
+function renderRegistrySummary(health, registry) {
+  const count = registry.count ?? health.enabled_facets;
+  const categories = registry.categories ?? [];
+  document.getElementById("registryFacetCount").textContent = count.toLocaleString();
+  document.getElementById("registryBatchSize").textContent = health.facet_batch_size;
+  document.getElementById("registryCategoryCount").textContent = categories.length;
+  document.getElementById("registryEvaluator").textContent = health.evaluator_backend.toUpperCase();
+  document.getElementById("registrySource").textContent = `${count.toLocaleString()} unique assignment facets loaded`;
+  document.getElementById("registryModel").textContent = `${health.evaluator_model} · max ${health.max_facets_per_request.toLocaleString()} facets/request`;
+}
+
 function renderResult(result) {
   document.getElementById("overallScore").textContent = result.metrics.overall_score.toFixed(3);
   document.getElementById("overallConfidence").textContent = result.metrics.overall_confidence.toFixed(3);
@@ -41,22 +67,20 @@ function renderCharts(metrics) {
   const scores = metrics.category_scores.map((item) => item.score);
   const confidence = metrics.category_scores.map((item) => item.confidence);
   categoryChart?.destroy();
-  confidenceChart?.destroy();
   categoryChart = new Chart(document.getElementById("categoryChart"), {
-    type: "radar",
-    data: {
-      labels: categories,
-      datasets: [{ label: "Category score", data: scores, borderColor: "#1d7f6e", backgroundColor: "rgba(29,127,110,0.18)" }],
-    },
-    options: { scales: { r: { min: 0, max: 1 } } },
-  });
-  confidenceChart = new Chart(document.getElementById("confidenceChart"), {
     type: "bar",
     data: {
       labels: categories,
-      datasets: [{ label: "Confidence", data: confidence, backgroundColor: "#4f6f9f" }],
+      datasets: [
+        { label: "Normalized score", data: scores, backgroundColor: "#1d7f6e" },
+        { label: "Confidence", data: confidence, backgroundColor: "#4f6f9f" },
+      ],
     },
-    options: { scales: { y: { min: 0, max: 1 } } },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: { y: { min: 0, max: 1 } },
+    },
   });
 }
 
@@ -72,9 +96,9 @@ function renderTurns(turns) {
             .map(
               (facet) => `
                 <div class="facet">
-                  <span>${facet.facet_id}</span>
-                  <div class="bar" title="${escapeHtml(facet.reasoning_summary)}"><div style="width:${facet.confidence * 100}%"></div></div>
-                  <strong>${facet.score}</strong>
+                  <span title="${escapeHtml(facet.facet_id)}">${facet.facet_id}</span>
+                  <div class="bar" title="${escapeHtml(`${facet.reasoning_summary} Confidence: ${facet.confidence}`)}"><div style="width:${scoreWidth(facet.score)}%"></div></div>
+                  <strong title="Raw score">${facet.score}</strong>
                 </div>`
             )
             .join("")}
@@ -85,4 +109,8 @@ function renderTurns(turns) {
 
 function escapeHtml(value) {
   return value.replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;" })[char]);
+}
+
+function scoreWidth(score) {
+  return Math.max(0, Math.min(100, ((Number(score) - 1) / 4) * 100));
 }
